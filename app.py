@@ -4,35 +4,33 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import Calendar
 from datetime import datetime #timedelta
-#import tkinter.simpledialog as simpledialog
-from openpyxl.styles import  PatternFill #Font
+import tkinter.simpledialog as simpledialog
+from openpyxl.styles import  PatternFill, Font
 
 FERIADOS = ["25/12/2023", "01/01/2024", "31/09/2023"]  # Exemplo de feriados.
 
 def create_schedule():
-    # Verificar se a planilha já existe; se sim, não criar novamente
-    if os.path.exists("HorarioFuncionarios.xlsx"):
-        return
+    try:
+        if os.path.exists("HorarioFuncionarios.xlsx"):
+            return
 
-    # Criar um novo workbook e selecionar a planilha ativa
-    wb = openpyxl.Workbook()
-    ws = wb.active
-
-    # Nomeando a planilha
-    ws.title = "Horários"
-
-    # Definir os cabeçalhos
-    # Definir apenas o cabeçalho 'Funcionário'
-    ws["A1"] = 'Funcionário'
-
-    # Salvar o workbook
-    wb.save("HorarioFuncionarios.xlsx")
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws["A1"] = 'Funcionário'
+        wb.save("HorarioFuncionarios.xlsx")
+    except Exception as e:
+        print(f"Erro ao criar a planilha: {e}")
 
 class ScheduleManager:
     def __init__(self, filename):
-        self.filename = filename
-        self.wb = openpyxl.load_workbook(filename)
-        self.ws = self.wb.active
+        self.filename = filename  # Certifique-se de que esta linha esteja presente
+        try:
+            self.wb = openpyxl.load_workbook(filename)
+            self.ws = self.wb.active
+        except Exception as e:
+            print(f"Erro ao carregar a planilha: {e}")
+
+
 
     def fill_schedule(self):
         for row, employee_cell in enumerate(self.ws['A'], start=1):
@@ -68,18 +66,34 @@ class ScheduleManager:
         return [cell.value for cell in self.ws['A'] if cell.value and cell.row != 1]
 
     def register_date(self, name, date, option):
-        row_num = next((row for row, cell in enumerate(self.ws['A']) if cell.value == name), None) + 1
-        col_num = self.get_date_column(date)
-        if row_num and col_num:
-            cell = self.ws.cell(row=row_num, column=col_num, value=option)
-            
-            # Se a opção for "Folga", mude a cor do fundo da célula para vermelho
-            if option == "Folga":
-                cell.fill = PatternFill("solid", fgColor="FF0000")
-            else:
-                cell.fill = PatternFill(None)  # Reverte para o padrão se a opção não for "Folga"
-            
-            self.save()
+        try:
+            # Verifica se o nome do funcionário está na planilha
+            row_num = next((row for row, cell in enumerate(self.ws['A']) if cell.value == name), None)
+            if row_num is None:
+                raise ValueError(f"Funcionário '{name}' não encontrado.")
+
+            # Incrementa para ajustar o índice da linha (começa em 1, não em 0)
+            row_num += 1
+
+            # Obtém o número da coluna para a data
+            col_num = self.get_date_column(date)
+
+            # Se encontrou o número da linha e da coluna, procede com a atualização
+            if row_num and col_num:
+                cell = self.ws.cell(row=row_num, column=col_num, value=option)
+                
+                # Altera a cor de fundo da célula se a opção for "Folga"
+                if option == "Folga":
+                    cell.fill = PatternFill("solid", fgColor="FF0000")
+                else:
+                    cell.fill = PatternFill(None)  # Reverte para o padrão se a opção não for "Folga"
+                
+                # Salva as alterações na planilha
+                self.save()
+        except ValueError as ve:
+            print(ve)
+        except Exception as e:
+            print(f"Erro ao registrar a data: {e}")
 
     def check_right_for_homeoffice(self, name, date):
         dt = datetime.strptime(date, '%d/%m/%Y')
@@ -122,7 +136,10 @@ class ScheduleManager:
         return [cell.value for cell in self.ws['A'] if cell.value and cell.row != 1]
 
     def save(self):
-        self.wb.save(self.filename)
+        try:
+            self.wb.save(self.filename)
+        except Exception as e:
+            print(f"Erro ao salvar a planilha: {e}")
 
 class App:
     def __init__(self, root, manager):
