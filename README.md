@@ -20,8 +20,7 @@ pip install -r requirements.txt
 
 ## Project Structure
 
-- `main.py`: The main file that launches the application.
-- `ScheduleManager.py`: A module managing the business logic related to schedules and employees.
+- `app.py`: The main file that launches the application.
 - `HorarioFuncionarios.xlsx`: An Excel spreadsheet to store data.
 
 ## Usage
